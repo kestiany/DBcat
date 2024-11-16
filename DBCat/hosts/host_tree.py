@@ -229,15 +229,15 @@ class HostTree:
         if item is not None and self.getItemType(item) == HostTree.TABLE:
             if self.warn_message_box('确认清空表[{}]内的所有数据？    '.format(item.text(0))):
                 sql = "DELETE FROM {}".format(item.text(0))
-                _, msg = mysql_operator.MysqlOperator().do_exec_statement(self.getItemHostId(item), sql)
+                _, msg = mysql_operator.MysqlOperator().do_exec_statement(self.getItemHostId(item), "", sql)
                 self.sql_control_widget.set_msg('[DELETE TABLE]{}: {}'.format(sql, msg))
 
     def drop_data(self):
         item = self.sql_tree_widget.currentItem()
         if item is not None and self.getItemType(item) == HostTree.TABLE:
             if self.warn_message_box('确认清空表[{}]内的所有数据, 并删除此表？    '.format(item.text(0))):
-                sql = "DELETE FROM {}".format(item.text(0))
-                _, msg = mysql_operator.MysqlOperator().do_exec_statement(self.getItemHostId(item), sql)
+                sql = "DROP TABLE {}".format(item.text(0))
+                _, msg = mysql_operator.MysqlOperator().do_exec_statement(self.getItemHostId(item), "", sql)
                 self.sql_control_widget.set_msg('[DROP TABLE]{}: {}'.format(sql, msg))
                 item.parent().removeChild(item)
 
