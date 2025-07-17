@@ -6,7 +6,12 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[('image/*.*', 'image/')],
-    hiddenimports=[],
+    hiddenimports=[
+        'mysql.connector',
+        'mysql.connector.plugins',
+        'mysql.connector.plugins.mysql_native_password',
+        'mysql.connector.plugins.caching_sha2_password',
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
