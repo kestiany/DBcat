@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
+import logging
 from pathlib import Path
 from PyQt5 import QtCore
 
 from DBCat.texteditor import text_editor
 from DBCat import resource as res
+from DBCat.file_utils import safe_read_file, safe_write_file
+from DBCat.error_handler import FileErrorHandler
+
+# 配置日志记录
+logger = logging.getLogger(__name__)
 
 
 class SqlEditor:
@@ -34,16 +40,37 @@ class SqlEditor:
         else:
             for file in files:
                 sqlCode = text_editor.TextEditor()
-                with open(file, 'r') as fileHandler:
-                    sqlCode.setPlainText(fileHandler.read())
-                self.sqlEditor.addTab(sqlCode, Path(file).stem)
+                content = safe_read_file(file, parent=self.sqlEditor.parent(), show_dialog=True)
+                if content is not None:
+                    sqlCode.setPlainText(content)
+                    self.sqlEditor.addTab(sqlCode, Path(file).stem)
+                else:
+                    logger.warning(f"无法读取文件 {file}，跳过该文件")
 
     def saveFiles(self):
         directory_path = res.sql_dir()
         # 获取所有tab页
         for i in range(self.sqlEditor.count()):
-            with open(directory_path / (self.sqlEditor.tabText(i) + '.sql'), 'w') as file:
-                file.write(self.sqlEditor.widget(i).wholeText())
+            file_path = directory_path / (self.sqlEditor.tabText(i) + '.sql')
+            content = self.sqlEditor.widget(i).wholeText()
+            try:
+                success = safe_write_file(file_path, content, encoding='utf-8')
+                if not success:
+                    logger.error(f"保存文件失败: {file_path}")
+                    FileErrorHandler.handle_file_error(
+                        Exception("保存文件失败"), 
+                        str(file_path), 
+                        parent=self.sqlEditor.parent(), 
+                        show_dialog=True
+                    )
+            except Exception as e:
+                logger.error(f"保存文件时发生错误: {file_path} - {str(e)}")
+                FileErrorHandler.handle_file_error(
+                    e, 
+                    str(file_path), 
+                    parent=self.sqlEditor.parent(), 
+                    show_dialog=True
+                )
 
     def newSqlEdit(self, name):
         tab_index = self.findText(name)
@@ -62,7 +89,13 @@ class SqlEditor:
         try:
             file.unlink(missing_ok=True)
         except Exception as e:
-            print(f"删除文件时发生错误: {e}")
+            logger.error(f"删除文件时发生错误: {file} - {str(e)}")
+            FileErrorHandler.handle_file_error(
+                e, 
+                str(file), 
+                parent=self.sqlEditor.parent(), 
+                show_dialog=True
+            )
 
     def findText(self, tab_name):
         """根据tab名称查找并返回其索引，如果未找到则返回-1"""
@@ -70,3 +103,5 @@ class SqlEditor:
             if self.sqlEditor.tabText(index) == tab_name:
                 return index
         return -1
+
+

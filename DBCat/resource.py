@@ -25,8 +25,15 @@ def sql_dir():
 
 
 def setting_file():
-    file_name = Path.home() / ".dbcat" / ".conn"
+    dbcat_dir = Path.home() / ".dbcat"
+    file_name = dbcat_dir / ".conn"
+    
+    # 确保目录存在
+    if not os.path.exists(dbcat_dir):
+        os.makedirs(dbcat_dir)
+    
+    # 如果文件不存在，创建默认文件
     if not os.path.exists(file_name):
-        with open(file_name, 'w') as file:
-            json.dump([], file)
+        with open(file_name, 'w', encoding='utf-8') as file:
+            json.dump([], file, ensure_ascii=False, indent=2)
     return file_name

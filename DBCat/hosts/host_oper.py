@@ -27,7 +27,7 @@ class HostOper(metaclass=Singleton):
     def __init__(self, setting_file) -> None:
         self.hosts = []
         self.dbcat_setting_file = setting_file
-        with open(self.dbcat_setting_file, 'r') as file:
+        with open(self.dbcat_setting_file, 'r', encoding='utf-8') as file:
             try:
                 hosts = hosts_from_json(json.load(file))
                 self.hosts = sorted(hosts, key=lambda x: x.id)
@@ -71,5 +71,5 @@ class HostOper(metaclass=Singleton):
         self.save_hosts_to_file()
 
     def save_hosts_to_file(self):
-        with open(self.dbcat_setting_file, 'w') as file:
-            json.dump(hosts_to_json(self.hosts), file)
+        with open(self.dbcat_setting_file, 'w', encoding='utf-8') as file:
+            json.dump(hosts_to_json(self.hosts), file, ensure_ascii=False)

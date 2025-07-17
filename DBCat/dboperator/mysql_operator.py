@@ -15,7 +15,6 @@ class Singleton(type):
 class MysqlOperator(metaclass=Singleton):
     def __init__(self):
         self.__conns = {}
-        self.data = "Hello, World!"
 
     def release_connections(self):
         for connection in self.__conns.values():
@@ -35,7 +34,7 @@ class MysqlOperator(metaclass=Singleton):
             cursor = connection.cursor()
             try:
                 if database:
-                    cursor.execute("USE {}".format(database))
+                    cursor.execute("USE `{}`".format(database))
                 cursor.execute(sql)
                 if cursor.with_rows:
                     # 处理查询结果
@@ -78,7 +77,7 @@ class MysqlOperator(metaclass=Singleton):
         if connection is not None:
             cursor = connection.cursor()
             try:
-                cursor.execute("USE {}".format(database))
+                cursor.execute("USE `{}`".format(database))
                 cursor.execute('SHOW TABLES')
                 records = cursor.fetchall()
                 return [record[0] for record in records], ''
