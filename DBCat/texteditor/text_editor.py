@@ -3,9 +3,14 @@ https://doc.qt.io/qt-5/qtwidgets-widgets-PlainTextEditor-example.html#the-linenu
 https://doc.qt.io/qtforpython/examples/example_widgets__PlainTextEditor.html
 """
 import unicodedata
+import logging
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from DBCat.texteditor import sql_highlighter
+from DBCat.component.sql_formatter import format_sql
+
+# 配置日志记录
+logger = logging.getLogger(__name__)
 
 
 class LineNumberArea(QtWidgets.QWidget):
@@ -220,6 +225,9 @@ class TextEditor(CodeTextEdit):
             search_text, ok = QtWidgets.QInputDialog.getText(self, 'Find', 'Enter text to find:')
             if ok and search_text:
                 self.find_text(search_text)
+        elif event.key() == QtCore.Qt.Key.Key_L and event.modifiers() == QtCore.Qt.KeyboardModifier.ControlModifier:
+            # Ctrl+L 格式化SQL
+            self.format_sql()
 
     def find_text(self, text_to_find):
         text_cursor = self.textCursor()
@@ -280,6 +288,71 @@ class TextEditor(CodeTextEdit):
     def wholeText(self):
         return self.toPlainText()
 
+    def format_sql(self):
+        """格式化SQL代码"""
+        try:
+            # 获取当前文本
+            cursor = self.textCursor()
+            
+            # 检查是否有选中的文本
+            if cursor.hasSelection():
+                # 获取选中的文本
+                start = cursor.selectionStart()
+                end = cursor.selectionEnd()
+                cursor.setPosition(start)
+                cursor.setPosition(end, QtGui.QTextCursor.KeepAnchor)
+                selected_text = cursor.selectedText()
+                
+                # 将段落分隔符替换为换行符
+                text_to_format = ""
+                for char in selected_text:
+                    if unicodedata.category(char) == 'Zp':
+                        text_to_format += '\n'
+                    else:
+                        text_to_format += char
+                
+                # 格式化选中的SQL
+                formatted_sql = format_sql(text_to_format)
+                
+                # 替换选中的文本
+                cursor.beginEditBlock()
+                cursor.removeSelectedText()
+                cursor.insertText(formatted_sql)
+                cursor.endEditBlock()
+                
+                # 显示状态消息
+                logger.info("已格式化选中的SQL代码")
+            else:
+                # 格式化整个文档
+                text_to_format = self.toPlainText()
+                formatted_sql = format_sql(text_to_format)
+                
+                # 保存当前滚动位置
+                scrollbar = self.verticalScrollBar()
+                scroll_pos = scrollbar.value()
+                
+                # 替换整个文档内容
+                cursor.beginEditBlock()
+                cursor.select(QtGui.QTextCursor.Document)
+                cursor.removeSelectedText()
+                cursor.insertText(formatted_sql)
+                cursor.endEditBlock()
+                
+                # 恢复滚动位置
+                scrollbar.setValue(scroll_pos)
+                
+                # 显示状态消息
+                logger.info("已格式化整个SQL文档")
+                
+        except Exception as e:
+            logger.error(f"格式化SQL时出错: {str(e)}")
+            QtWidgets.QMessageBox.warning(
+                self, 
+                "格式化错误", 
+                f"格式化SQL时出错: {str(e)}", 
+                QtWidgets.QMessageBox.Ok
+            )
+    
     def selections(self):
         selection_text = self.textCursor().selectedText()
         content_text = []

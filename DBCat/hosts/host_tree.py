@@ -7,6 +7,7 @@ from DBCat.hosts import host_oper
 from DBCat.hosts import host_edit_dialog
 from DBCat.dboperator import mysql_operator
 from DBCat import resource as res
+from DBCat.component import data_exporter
 
 
 class HostTree:
@@ -171,6 +172,8 @@ class HostTree:
         # table action
         self.actIndexTable = self.contextMenu.addAction(QIcon(res.resource_path("image/index.svg")), "view index")
         self.actIndexTable.triggered.connect(self.show_index)
+        self.actExportTable = self.contextMenu.addAction(QIcon(res.resource_path("image/result.svg")), "export table")
+        self.actExportTable.triggered.connect(self.export_table)
         self.actDeleteData = self.contextMenu.addAction(QIcon(res.resource_path("image/delete.svg")), "delete data")
         self.actDeleteData.triggered.connect(self.delete_data)
         self.actDropTable = self.contextMenu.addAction(QIcon(res.resource_path("image/delete.svg")), "drop table")
@@ -223,6 +226,24 @@ class HostTree:
         item = self.sql_tree_widget.currentItem()
         if item is not None and self.getItemType(item) == HostTree.TABLE:
             self.sql_control_widget.show_index(self.getItemHostId(item), item.parent().text(0), item.text(0))
+            
+    def export_table(self):
+        """导出表数据"""
+        item = self.sql_tree_widget.currentItem()
+        if item is not None and self.getItemType(item) == HostTree.TABLE:
+            host_id = self.getItemHostId(item)
+            database = item.parent().text(0)
+            table = item.text(0)
+            
+            # 创建数据导出器
+            exporter = data_exporter.DataExporter(self.sql_tree_widget)
+            
+            # 执行导出
+            success = exporter.export_table_data(host_id, database, table)
+            
+            # 显示导出结果
+            if success:
+                self.sql_control_widget.set_msg(f"表 {table} 数据导出成功")
 
     def delete_data(self):
         item = self.sql_tree_widget.currentItem()

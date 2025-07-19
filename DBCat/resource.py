@@ -37,3 +37,11 @@ def setting_file():
         with open(file_name, 'w', encoding='utf-8') as file:
             json.dump([], file, ensure_ascii=False, indent=2)
     return file_name
+
+
+def log_file_path():
+    """获取日志文件路径"""
+    log_dir = Path.home() / ".dbcat" / "logs"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    return log_dir / "dbcat.log"

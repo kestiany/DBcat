@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 from datetime import datetime
 from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtWidgets import QTabWidget, QTabBar, QTableView, QApplication, QAbstractItemView
@@ -7,6 +8,10 @@ from PyQt5.QtCore import Qt, QModelIndex, QAbstractTableModel, QVariant, QSortFi
 from DBCat.dboperator import mysql_operator
 from DBCat import resource as res
 from DBCat.component import sqlTableView
+from DBCat.component.sql_history import sql_history_manager
+
+# 配置日志记录
+logger = logging.getLogger(__name__)
 
 
 class SqlControlEdit:
@@ -64,16 +69,55 @@ class SqlControlEdit:
         index = self.tabWidget.addTab(table_view, self.icon_index if type == 'INDEX' else self.icon_table, name)
         self.tabWidget.setCurrentIndex(index)
 
-    def exec_sql(self, id, db_name, sql):
+    def exec_sql(self, id, db_name, sql, host_name=""):
         try:
+            # 执行SQL语句
             records, headers = mysql_operator.MysqlOperator().do_exec_statement(id, db_name, sql)
+            
+            # 记录到历史记录
+            success = True
+            affected_rows = 0
+            
             if records is not None:
-                self.set_msg('[exec success]: {}, [result rows]: {}'.format(sql, len(records)))
+                # 查询语句执行成功
+                affected_rows = len(records)
+                self.set_msg('[exec success]: {}, [result rows]: {}'.format(sql, affected_rows))
                 self.fill_result(records, headers)
             else:
-                self.set_msg(headers)
+                # 非查询语句执行成功或失败
+                if isinstance(headers, str) and headers.startswith("error:"):
+                    success = False
+                    self.set_msg(headers)
+                else:
+                    # 提取受影响的行数
+                    try:
+                        if isinstance(headers, str) and "Affected rows:" in headers:
+                            affected_rows = int(headers.split("Affected rows:")[1].strip())
+                    except:
+                        pass
+                    self.set_msg(headers)
+            
+            # 保存到历史记录
+            sql_history_manager.add_record(
+                sql=sql,
+                database=db_name,
+                host_name=host_name,
+                success=success,
+                affected_rows=affected_rows
+            )
+            
         except Exception as e:
+            # 执行出错
             self.set_msg(f'[ERROR]: {e}')
+            
+            # 记录错误到历史记录
+            sql_history_manager.add_record(
+                sql=sql,
+                database=db_name,
+                host_name=host_name,
+                success=False,
+                affected_rows=0
+            )
 
     def fill_result(self, records, headers):
         table_view = self.tabWidget.widget(1)
